@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: demo
+  threads:
+    virtual:
+      enabled: true
+log.http:
+  enabled: true
