@@ -1,0 +1,49 @@
+@baseUrl = http://localhost:8080/api/v1
+### Get all posts
+GET {{baseUrl}}/posts
+Content-Type: application/json
+
+### Get post by ID
+GET {{baseUrl}}/posts/1
+Content-Type: application/json
+
+### Create post
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "title": "New Post",
+  "body": "This is a new post."
+}
+
+### Update post
+PUT {{baseUrl}}/posts/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "userId": 1,
+  "title": "Updated Post",
+  "body": "This is an updated post."
+}
+
+### Patch post
+PATCH {{baseUrl}}/posts/1
+Content-Type: application/json
+
+{
+  "title": "Patched Post"
+}
+
+### Delete post
+DELETE {{baseUrl}}/posts/1
+
+### Options
+OPTIONS {{baseUrl}}/posts
+
+### Head
+HEAD {{baseUrl}}/posts/1
+
+### SOAP: Number to Words
+GET {{baseUrl}}/soap/number-to-words?number={{$random.integer(0,100000)}}

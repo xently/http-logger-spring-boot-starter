@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Application (webmvc)" type="SpringBootApplicationConfigurationType"
+                   factoryName="Spring Boot">
+        <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources"/>
+        <module name="demo-webmvc"/>
+        <option name="SPRING_BOOT_MAIN_CLASS" value="co.ke.xently.demo.Application"/>
+        <method v="2">
+            <option name="Make" enabled="true"/>
+        </method>
+    </configuration>
+</component>

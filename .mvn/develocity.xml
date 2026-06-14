@@ -1,0 +1,5 @@
+<develocity>
+    <buildScan>
+        <publish>ON_DEMAND</publish>
+    </buildScan>
+</develocity>
