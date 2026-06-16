@@ -7,13 +7,11 @@ import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.restclient.RestClientCustomizer;
+import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.boot.webservices.client.WebServiceTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +25,7 @@ import org.springframework.ws.client.core.WebServiceTemplate;
 @AutoConfiguration
 @ConditionalOnWebApplication
 @EnableConfigurationProperties(HttpLoggerProperties.class)
+@ConditionalOnBooleanProperty(name = "log.http.enabled", matchIfMissing = true)
 public class HttpLoggerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
@@ -120,9 +119,25 @@ public class HttpLoggerAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public WebClient.Builder webClientBuilder(HttpLoggerFilter loggerFilter) {
-            return WebClient.builder()
-                    .filter(loggerFilter);
+        @ConditionalOnMissingClass(value = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
+        public WebClient.Builder webClientBuilder(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
+            var builder = WebClient.builder();
+            if (!properties.isEnabled()) {
+                return builder;
+            }
+            return builder.filter(loggerFilter);
+        }
+
+        @Configuration(proxyBeanMethods = false)
+        @ConditionalOnClass(name = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
+        static class WebClientCustomizerConfiguration {
+            @Bean
+            @ConditionalOnMissingBean
+            public WebClientCustomizer webClientCustomizer(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
+                return webClientBuilder -> {
+                    if (properties.isEnabled()) webClientBuilder.filter(loggerFilter);
+                };
+            }
         }
     }
 }
