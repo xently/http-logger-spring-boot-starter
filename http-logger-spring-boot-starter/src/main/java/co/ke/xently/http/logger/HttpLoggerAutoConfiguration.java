@@ -6,18 +6,19 @@ import co.ke.xently.http.logger.webflux.HttpLoggerFilter;
 import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.webservices.client.WebServiceTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.ws.client.core.WebServiceTemplate;
@@ -77,21 +78,34 @@ public class HttpLoggerAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public @Nullable ClientHttpRequestFactory clientHttpRequestFactory() {
-            return new BufferingClientHttpRequestFactory(new JdkClientHttpRequestFactory());
-        }
-
-        @Bean
-        @ConditionalOnMissingBean
+        @ConditionalOnMissingClass(value = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
         public RestClient.Builder restClientBuilder(
-                @Nullable ClientHttpRequestFactory factory,
-                HttpLoggerRequestInterceptor interceptor
+                HttpLoggerRequestInterceptor interceptor,
+                HttpLoggerProperties properties
         ) {
             var builder = RestClient.builder();
-            if (factory != null) {
-                builder.requestFactory(factory);
+            if (!properties.isEnabled()) {
+                return builder;
             }
             return builder.requestInterceptor(interceptor);
+        }
+
+        @Configuration(proxyBeanMethods = false)
+        @ConditionalOnClass(name = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
+        static class RestClientCustomizerConfiguration {
+            @Bean
+            @ConditionalOnMissingBean
+            public ClientHttpRequestFactoryBuilder<?> clientHttpRequestFactoryBuilder(ResourceLoader resourceLoader) {
+                var classLoader = resourceLoader.getClassLoader();
+                var builder = ClientHttpRequestFactoryBuilder.detect(classLoader);
+                return settings -> new BufferingClientHttpRequestFactory(builder.build(settings));
+            }
+
+            @Bean
+            @ConditionalOnMissingBean
+            public RestClientCustomizer restClientCustomizer(HttpLoggerRequestInterceptor interceptor) {
+                return restClientBuilder -> restClientBuilder.requestInterceptor(interceptor);
+            }
         }
     }
 
