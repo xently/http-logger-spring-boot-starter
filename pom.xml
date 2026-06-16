@@ -11,7 +11,7 @@
 
     <groupId>ke.co.xently</groupId>
     <artifactId>http-logger-spring-boot-parent</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.0</version>
     <name>http-logger-spring-boot-parent</name>
     <description>Spring Boot autoconfiguration starter that adds request timing header</description>
     <url>https://github.com/xently/http-logger-spring-boot-starter</url>

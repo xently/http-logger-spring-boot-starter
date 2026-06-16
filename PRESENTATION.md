@@ -39,7 +39,7 @@ Add the dependency to your `pom.xml`:
 <dependency>
     <groupId>ke.co.xently</groupId>
     <artifactId>http-logger-spring-boot-starter</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
