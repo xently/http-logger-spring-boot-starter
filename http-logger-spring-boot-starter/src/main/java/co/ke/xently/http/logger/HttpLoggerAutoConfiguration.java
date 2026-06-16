@@ -7,7 +7,6 @@ import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -26,7 +25,6 @@ import org.springframework.ws.client.core.WebServiceTemplate;
 @AutoConfiguration
 @ConditionalOnWebApplication
 @EnableConfigurationProperties(HttpLoggerProperties.class)
-@ConditionalOnBooleanProperty(name = "log.http.enabled", matchIfMissing = true)
 public class HttpLoggerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean

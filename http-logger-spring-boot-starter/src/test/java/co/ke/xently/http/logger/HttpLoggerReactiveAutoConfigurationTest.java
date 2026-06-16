@@ -17,11 +17,4 @@ class HttpLoggerReactiveAutoConfigurationTest {
         contextRunner.run(context -> assertThat(context)
                 .hasSingleBean(WebClient.Builder.class));
     }
-
-    @Test
-    void shouldNotRegisterWebClientBuilderWhenAutoConfigurationIsDisabled() {
-        contextRunner.withPropertyValues("log.http.enabled=false")
-                .run(context -> assertThat(context)
-                        .doesNotHaveBean(WebClient.Builder.class));
-    }
 }

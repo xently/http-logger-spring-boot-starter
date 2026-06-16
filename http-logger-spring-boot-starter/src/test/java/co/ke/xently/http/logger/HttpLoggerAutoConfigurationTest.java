@@ -18,12 +18,4 @@ class HttpLoggerAutoConfigurationTest {
             assertThat(context).hasSingleBean(RestClient.Builder.class);
         });
     }
-
-    @Test
-    void shouldNotRegisterRestClientBuilderWhenAutoConfigurationIsDisabled() {
-        contextRunner.withPropertyValues("log.http.enabled=false")
-                .run(context -> {
-                    assertThat(context).doesNotHaveBean(RestClient.Builder.class);
-                });
-    }
 }
