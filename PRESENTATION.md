@@ -89,8 +89,9 @@ The Console Output:
 Customize behavior in `application.yml`:
 
 ```yaml
-log.http:
-  enabled: true  # Default: true
+log:
+  http:
+    enabled: true  # Default: true
 ```
 
 ---

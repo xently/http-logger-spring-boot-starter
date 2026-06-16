@@ -51,7 +51,7 @@ To run the WebFlux demo:
 The starter can be configured using the `log.http` prefix in your `application.yml` or `application.properties`.
 
 ```yaml
-log.http:
-  # Whether to enable HTTP logging. Default is true.
-  enabled: true
+log:
+  http:
+    enabled: true # Whether to enable HTTP logging. Default is true.
 ```
