@@ -37,18 +37,18 @@ public record HttpLoggerRequestInterceptor(
             logger().logRequest(request.getURI(), request.getMethod(), request.getHeaders(), new String(body));
         }
         var response = execution.execute(request, body);
-        if (canLog) {
-            byte[] responseBody = StreamUtils.copyToByteArray(response.getBody());
-            logger().logResponse(
-                    request.getURI(),
-                    request.getMethod(),
-                    response.getStatusCode(),
-                    response.getHeaders(),
-                    new String(responseBody)
-            );
-            return new BufferingClientHttpResponseWrapper(response, responseBody);
-        }
-        return response;
+
+        if (!canLog) return response;
+
+        byte[] responseBody = StreamUtils.copyToByteArray(response.getBody());
+        logger().logResponse(
+                request.getURI(),
+                request.getMethod(),
+                response.getStatusCode(),
+                response.getHeaders(),
+                new String(responseBody)
+        );
+        return new BufferingClientHttpResponseWrapper(response, responseBody);
     }
 
     private record BufferingClientHttpResponseWrapper(
