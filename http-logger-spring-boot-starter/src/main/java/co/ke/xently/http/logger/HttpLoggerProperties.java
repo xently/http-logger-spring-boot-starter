@@ -8,10 +8,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ToString
 @Getter
 @Setter
-@Builder
 @EqualsAndHashCode
+@NoArgsConstructor
+@AllArgsConstructor
 @ConfigurationProperties(prefix = "log.http")
-public class HttpLoggerProperties {
-    @Builder.Default
+public final class HttpLoggerProperties {
     private boolean enabled = true;
 }

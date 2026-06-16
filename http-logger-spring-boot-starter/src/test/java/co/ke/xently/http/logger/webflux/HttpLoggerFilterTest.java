@@ -38,7 +38,7 @@ class HttpLoggerFilterTest {
 
     @Test
     void shouldLogRequestAndResponseDetailsWhenEnabled(CapturedOutput output) {
-        var properties = HttpLoggerProperties.builder().enabled(true).build();
+        var properties = new HttpLoggerProperties();
         var filter = new HttpLoggerFilter(properties, new HttpLogger(request -> logger));
 
         var httpHeaders = new HttpHeaders(
@@ -83,7 +83,7 @@ class HttpLoggerFilterTest {
 
     @Test
     void shouldNotLogWhenDisabled(CapturedOutput output) {
-        var properties = HttpLoggerProperties.builder().enabled(false).build();
+        var properties = new HttpLoggerProperties(false);
         var filter = new HttpLoggerFilter(properties, new HttpLogger(request -> logger));
 
         when(next.exchange(request)).thenReturn(Mono.just(response));

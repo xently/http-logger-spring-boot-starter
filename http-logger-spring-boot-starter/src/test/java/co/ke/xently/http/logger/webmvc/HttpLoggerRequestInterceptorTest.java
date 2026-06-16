@@ -43,8 +43,7 @@ class HttpLoggerRequestInterceptorTest {
 
     @Test
     void shouldLogRequestDetailsWhenLogLevelIsEnabled(CapturedOutput output) throws IOException {
-        var properties = HttpLoggerProperties.builder()
-                .build();
+        var properties = new HttpLoggerProperties();
         var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(request -> logger));
 
         byte[] body = "test body".getBytes();
@@ -79,9 +78,7 @@ class HttpLoggerRequestInterceptorTest {
 
     @Test
     void shouldNotLogRequestDetailsWhenLogLevelIsDisabled(CapturedOutput output) throws IOException {
-        var properties = HttpLoggerProperties.builder()
-                .enabled(false)
-                .build();
+        var properties = new HttpLoggerProperties(false);
         var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(request -> logger));
 
         byte[] body = "test body".getBytes();

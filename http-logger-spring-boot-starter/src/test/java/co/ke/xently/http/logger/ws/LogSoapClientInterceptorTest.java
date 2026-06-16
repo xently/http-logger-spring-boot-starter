@@ -25,8 +25,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(OutputCaptureExtension.class)
 class LogSoapClientInterceptorTest {
 
-    private final HttpLoggerProperties properties = HttpLoggerProperties.builder()
-            .build();
+    private final HttpLoggerProperties properties = new HttpLoggerProperties();
 
     @Test
     void shouldLogSoapRequestWhenLoggingIsEnabled(CapturedOutput output) throws Exception {
@@ -96,9 +95,7 @@ class LogSoapClientInterceptorTest {
         when(logger.isEnabledForLevel(Level.INFO)).thenReturn(false);
         var context = mock(MessageContext.class);
         when(context.getRequest()).thenReturn(mock(SoapMessage.class));
-        var props = HttpLoggerProperties.builder()
-                .enabled(false)
-                .build();
+        var props = new HttpLoggerProperties(false);
         var interceptor = new LogSoapClientInterceptor(props, request -> logger);
 
         var handled = interceptor.handleRequest(context);

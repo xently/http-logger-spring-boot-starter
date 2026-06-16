@@ -6,6 +6,7 @@ import co.ke.xently.http.logger.webflux.HttpLoggerFilter;
 import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -76,21 +77,19 @@ public class HttpLoggerAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public ClientHttpRequestFactory clientHttpRequestFactory() {
-            return new JdkClientHttpRequestFactory();
+        public @Nullable ClientHttpRequestFactory clientHttpRequestFactory() {
+            return new BufferingClientHttpRequestFactory(new JdkClientHttpRequestFactory());
         }
 
         @Bean
         @ConditionalOnMissingBean
         public RestClient.Builder restClientBuilder(
-                ClientHttpRequestFactory factory,
+                @Nullable ClientHttpRequestFactory factory,
                 HttpLoggerRequestInterceptor interceptor
         ) {
             var builder = RestClient.builder();
-            try {
-                builder.requestFactory(new BufferingClientHttpRequestFactory(factory));
-            } catch (Exception e) {
-                log.error("Failed to create HTTP request factory", e);
+            if (factory != null) {
+                builder.requestFactory(factory);
             }
             return builder.requestInterceptor(interceptor);
         }
