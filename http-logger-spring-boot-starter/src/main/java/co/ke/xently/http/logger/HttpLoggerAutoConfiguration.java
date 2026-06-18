@@ -23,120 +23,123 @@ import org.springframework.ws.client.core.WebServiceTemplate;
 
 @Slf4j
 @AutoConfiguration
-@ConditionalOnWebApplication
 @EnableConfigurationProperties(HttpLoggerProperties.class)
-@ConditionalOnBooleanProperty(name = "log.http.enabled", matchIfMissing = true)
 public class HttpLoggerAutoConfiguration {
-    @Bean
-    @ConditionalOnMissingBean
-    public HttpLoggerProvider httpLoggerProvider() {
-        return request -> log;
-    }
-
-    @Bean
-    public HttpLogger httpLogger(HttpLoggerProvider loggerProvider) {
-        return new HttpLogger(loggerProvider);
-    }
-
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(WebServiceTemplate.class)
-    static class SoapLoggerConfiguration {
-        @Bean
-        public LogSoapClientInterceptor logSoapClientInterceptor(
-                HttpLoggerProperties properties,
-                HttpLoggerProvider loggerProvider
-        ) {
-            return new LogSoapClientInterceptor(properties, loggerProvider);
-        }
-
+    @ConditionalOnWebApplication
+    @ConditionalOnBooleanProperty(name = "log.http.enabled", matchIfMissing = true)
+    static class HttpLoggerConfiguration {
         @Bean
         @ConditionalOnMissingBean
-        public WebServiceTemplateBuilder webServiceTemplateBuilder(LogSoapClientInterceptor interceptor) {
-            return new WebServiceTemplateBuilder()
-                    .additionalInterceptors(interceptor);
+        public HttpLoggerProvider httpLoggerProvider() {
+            return request -> log;
         }
 
         @Bean
-        @ConditionalOnMissingBean
-        public WebServiceTemplate webServiceTemplate(WebServiceTemplateBuilder builder) {
-            return builder.build();
-        }
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    @ConditionalOnClass(RestClient.class)
-    static class ServletHttpLoggerConfiguration {
-        @Bean
-        public HttpLoggerRequestInterceptor httpLoggerRequestInterceptor(
-                HttpLoggerProperties properties,
-                HttpLogger httpLogger
-        ) {
-            return new HttpLoggerRequestInterceptor(properties, httpLogger);
-        }
-
-        @Bean
-        @ConditionalOnMissingBean
-        @ConditionalOnMissingClass(value = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
-        public RestClient.Builder restClientBuilder(
-                HttpLoggerRequestInterceptor interceptor,
-                HttpLoggerProperties properties
-        ) {
-            var builder = RestClient.builder();
-            if (!properties.isEnabled()) {
-                return builder;
-            }
-            return builder.requestInterceptor(interceptor);
+        public HttpLogger httpLogger(HttpLoggerProvider loggerProvider) {
+            return new HttpLogger(loggerProvider);
         }
 
         @Configuration(proxyBeanMethods = false)
-        @ConditionalOnClass(name = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
-        static class RestClientCustomizerConfiguration {
+        @ConditionalOnClass(WebServiceTemplate.class)
+        static class SoapLoggerConfiguration {
+            @Bean
+            public LogSoapClientInterceptor logSoapClientInterceptor(
+                    HttpLoggerProperties properties,
+                    HttpLoggerProvider loggerProvider
+            ) {
+                return new LogSoapClientInterceptor(properties, loggerProvider);
+            }
+
             @Bean
             @ConditionalOnMissingBean
-            public ClientHttpRequestFactoryBuilder<?> clientHttpRequestFactoryBuilder(ResourceLoader resourceLoader) {
-                var classLoader = resourceLoader.getClassLoader();
-                var builder = ClientHttpRequestFactoryBuilder.detect(classLoader);
-                return settings -> new BufferingClientHttpRequestFactory(builder.build(settings));
+            public WebServiceTemplateBuilder webServiceTemplateBuilder(LogSoapClientInterceptor interceptor) {
+                return new WebServiceTemplateBuilder()
+                        .additionalInterceptors(interceptor);
             }
 
             @Bean
             @ConditionalOnMissingBean
-            public RestClientCustomizer restClientCustomizer(HttpLoggerRequestInterceptor interceptor) {
-                return restClientBuilder -> restClientBuilder.requestInterceptor(interceptor);
+            public WebServiceTemplate webServiceTemplate(WebServiceTemplateBuilder builder) {
+                return builder.build();
             }
-        }
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-    @ConditionalOnClass(WebClient.class)
-    static class ReactiveHttpLoggerConfiguration {
-        @Bean
-        public HttpLoggerFilter filter(HttpLoggerProperties properties, HttpLogger httpLogger) {
-            return new HttpLoggerFilter(properties, httpLogger);
-        }
-
-        @Bean
-        @ConditionalOnMissingBean
-        @ConditionalOnMissingClass(value = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
-        public WebClient.Builder webClientBuilder(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
-            var builder = WebClient.builder();
-            if (!properties.isEnabled()) {
-                return builder;
-            }
-            return builder.filter(loggerFilter);
         }
 
         @Configuration(proxyBeanMethods = false)
-        @ConditionalOnClass(name = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
-        static class WebClientCustomizerConfiguration {
+        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+        @ConditionalOnClass(RestClient.class)
+        static class ServletHttpLoggerConfiguration {
+            @Bean
+            public HttpLoggerRequestInterceptor httpLoggerRequestInterceptor(
+                    HttpLoggerProperties properties,
+                    HttpLogger httpLogger
+            ) {
+                return new HttpLoggerRequestInterceptor(properties, httpLogger);
+            }
+
             @Bean
             @ConditionalOnMissingBean
-            public WebClientCustomizer webClientCustomizer(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
-                return webClientBuilder -> {
-                    if (properties.isEnabled()) webClientBuilder.filter(loggerFilter);
-                };
+            @ConditionalOnMissingClass(value = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
+            public RestClient.Builder restClientBuilder(
+                    HttpLoggerRequestInterceptor interceptor,
+                    HttpLoggerProperties properties
+            ) {
+                var builder = RestClient.builder();
+                if (!properties.isEnabled()) {
+                    return builder;
+                }
+                return builder.requestInterceptor(interceptor);
+            }
+
+            @Configuration(proxyBeanMethods = false)
+            @ConditionalOnClass(name = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
+            static class RestClientCustomizerConfiguration {
+                @Bean
+                @ConditionalOnMissingBean
+                public ClientHttpRequestFactoryBuilder<?> clientHttpRequestFactoryBuilder(ResourceLoader resourceLoader) {
+                    var classLoader = resourceLoader.getClassLoader();
+                    var builder = ClientHttpRequestFactoryBuilder.detect(classLoader);
+                    return settings -> new BufferingClientHttpRequestFactory(builder.build(settings));
+                }
+
+                @Bean
+                @ConditionalOnMissingBean
+                public RestClientCustomizer restClientCustomizer(HttpLoggerRequestInterceptor interceptor) {
+                    return restClientBuilder -> restClientBuilder.requestInterceptor(interceptor);
+                }
+            }
+        }
+
+        @Configuration(proxyBeanMethods = false)
+        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+        @ConditionalOnClass(WebClient.class)
+        static class ReactiveHttpLoggerConfiguration {
+            @Bean
+            public HttpLoggerFilter filter(HttpLoggerProperties properties, HttpLogger httpLogger) {
+                return new HttpLoggerFilter(properties, httpLogger);
+            }
+
+            @Bean
+            @ConditionalOnMissingBean
+            @ConditionalOnMissingClass(value = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
+            public WebClient.Builder webClientBuilder(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
+                var builder = WebClient.builder();
+                if (!properties.isEnabled()) {
+                    return builder;
+                }
+                return builder.filter(loggerFilter);
+            }
+
+            @Configuration(proxyBeanMethods = false)
+            @ConditionalOnClass(name = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
+            static class WebClientCustomizerConfiguration {
+                @Bean
+                @ConditionalOnMissingBean
+                public WebClientCustomizer webClientCustomizer(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
+                    return webClientBuilder -> {
+                        if (properties.isEnabled()) webClientBuilder.filter(loggerFilter);
+                    };
+                }
             }
         }
     }
