@@ -6,6 +6,7 @@ import co.ke.xently.http.logger.webflux.HttpLoggerFilter;
 import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,6 +16,7 @@ import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.boot.webservices.client.WebServiceTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -78,6 +80,7 @@ public class HttpLoggerAutoConfiguration {
             }
 
             @Bean
+            @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
             @ConditionalOnMissingBean
             @ConditionalOnMissingClass(value = {"org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration"})
             public RestClient.Builder restClientBuilder(
@@ -120,6 +123,7 @@ public class HttpLoggerAutoConfiguration {
             }
 
             @Bean
+            @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
             @ConditionalOnMissingBean
             @ConditionalOnMissingClass(value = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
             public WebClient.Builder webClientBuilder(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {

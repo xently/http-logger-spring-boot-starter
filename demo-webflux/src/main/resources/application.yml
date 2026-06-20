@@ -7,3 +7,7 @@ spring:
 log:
   http:
     enabled: true
+settings:
+  insecure:
+    http:
+      enabled: true

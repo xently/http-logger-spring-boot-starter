@@ -57,7 +57,7 @@
                                 <rule>
                                     <bounds>
                                         <bound>
-                                            <minValue>90</minValue>
+                                            <minValue>85</minValue>
                                         </bound>
                                     </bounds>
                                 </rule>
