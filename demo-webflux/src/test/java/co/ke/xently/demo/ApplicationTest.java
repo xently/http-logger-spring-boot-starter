@@ -3,8 +3,8 @@ package co.ke.xently.demo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,8 +20,8 @@ class ApplicationTest {
     }
 
     @Test
-    void shouldHaveWebClientCustomizerBean() {
-        assertThat(context.containsBean("insecureSslWebClientCustomizer")).isTrue();
-        assertThat(context.getBeansOfType(WebClientCustomizer.class)).isNotEmpty();
+    void shouldHaveClientHttpConnectorBean() {
+        assertThat(context.containsBean("clientHttpConnector")).isTrue();
+        assertThat(context.getBeansOfType(ReactorClientHttpConnector.class)).isNotEmpty();
     }
 }

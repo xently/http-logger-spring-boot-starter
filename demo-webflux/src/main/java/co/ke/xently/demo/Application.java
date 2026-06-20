@@ -1,16 +1,18 @@
 package co.ke.xently.demo;
 
-import co.ke.xently.http.logger.HttpLoggerProperties;
-import co.ke.xently.http.logger.utils.HttpLogger;
-import co.ke.xently.http.logger.webflux.HttpLoggerFilter;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
-import org.springframework.boot.webclient.WebClientCustomizer;
+import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.http.client.reactive.ClientHttpConnectorBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import reactor.netty.http.client.HttpClient;
 
@@ -24,25 +26,27 @@ public class Application {
     }
 
     @Bean
+    @Lazy
     @ConditionalOnBooleanProperty(name = "settings.insecure.http.enabled")
-    public WebClientCustomizer insecureSslWebClientCustomizer(HttpLoggerProperties properties) {
-        return webClientBuilder -> {
-            try {
-                var sslContext = SslContextBuilder.forClient()
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .build();
+    ClientHttpConnector clientHttpConnector(ResourceLoader resourceLoader,
+                                            ObjectProvider<ClientHttpConnectorBuilder<?>> clientHttpConnectorBuilder,
+                                            ObjectProvider<HttpClientSettings> httpClientSettings) {
+        try {
+            var sslContext = SslContextBuilder.forClient()
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build();
 
-                var httpClient = HttpClient.create()
-                        .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
-
-                webClientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient));
-                if (properties.isEnabled()) {
-                    webClientBuilder
-                            .filter(new HttpLoggerFilter(properties, new HttpLogger(request -> log)));
-                }
-            } catch (SSLException e) {
-                throw new IllegalStateException("Failed to configure insecure SSL for WebClient", e);
-            }
-        };
+            var httpClient = HttpClient.create()
+                    .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+            return new ReactorClientHttpConnector(httpClient);
+        } catch (SSLException e) {
+            log.error("Failed to create SSL context", e);
+            log.info("Falling back to default (class-loader-based) connector...");
+            var connector = clientHttpConnectorBuilder
+                    .getIfAvailable(() -> ClientHttpConnectorBuilder.detect(resourceLoader.getClassLoader()))
+                    .build(httpClientSettings.getIfAvailable(HttpClientSettings::defaults));
+            log.info("Using (class-loader-based) connector: {}", connector.getClass().getName());
+            return connector;
+        }
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.boot.webservices.client.WebServiceTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -138,6 +139,7 @@ public class HttpLoggerAutoConfiguration {
             @ConditionalOnClass(name = {"org.springframework.boot.webclient.autoconfigure.WebClientAutoConfiguration"})
             static class WebClientCustomizerConfiguration {
                 @Bean
+                @Lazy
                 @ConditionalOnMissingBean
                 public WebClientCustomizer webClientCustomizer(HttpLoggerProperties properties, HttpLoggerFilter loggerFilter) {
                     return webClientBuilder -> {
