@@ -84,15 +84,19 @@ The Console Output:
 
 ---
 
-## Configuration
+## Configuration & Production Usage
 
 Customize behavior in `application.yml`:
 
 ```yaml
 log:
   http:
-    enabled: true  # Default: true
+    enabled: true  # Default: false
 ```
+
+### ⚠️ Production Safety
+- **Disable in Production**: It is highly recommended to set `log.http.enabled=false` in production.
+- **Risks**: Logging full request/response bodies can expose sensitive data (PII, credentials) and increase memory usage due to payload buffering.
 
 ---
 

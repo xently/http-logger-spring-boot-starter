@@ -53,5 +53,29 @@ The starter can be configured using the `log.http` prefix in your `application.y
 ```yaml
 log:
   http:
-    enabled: true # Whether to enable HTTP logging. Default is true.
+    enabled: true # Whether to enable HTTP logging. Default is false.
+```
+
+## Security and Performance Considerations (Production Settings)
+
+While this library is useful for debugging, logging full request and response bodies in production environments carries several risks:
+
+### 1. Security and Privacy Risks
+- **Sensitive Data Exposure**: Request and response bodies often contain Personally Identifiable Information (PII), credentials, API keys, or session tokens. Logging these in plain text can lead to data breaches if logs are not properly secured or if they are sent to external log aggregators.
+- **Compliance**: Many regulations (e.g., GDPR, PCI-DSS) strictly prohibit the logging of sensitive data.
+
+### 2. Performance Impacts
+- **Memory Consumption**: To log the body of a request or response, the library must buffer the entire payload into memory. For large files or high-concurrency environments, this can significantly increase memory usage and potentially lead to `OutOfMemoryError`.
+- **Latency**: Buffering and converting large payloads to strings adds processing time to every outgoing request.
+
+### 3. Storage and Cost
+- **Log Volume**: Logging every request and response body can quickly consume large amounts of disk space or exceed log ingestion quotas in cloud monitoring services, leading to increased operational costs.
+
+### Recommendation
+It is recommended to **disable** this library in production environments unless strictly necessary for short-term troubleshooting. To disable it, set the following property:
+
+```yaml
+log:
+  http:
+    enabled: false
 ```
