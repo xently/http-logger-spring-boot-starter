@@ -13,7 +13,7 @@
     <artifactId>http-logger-spring-boot-parent</artifactId>
     <version>1.2.0</version>
     <name>http-logger-spring-boot-parent</name>
-    <description>Spring Boot autoconfiguration starter that adds request timing header</description>
+    <description>Spring Boot autoconfiguration starter that logs HTTP and SOAP request and response bodies</description>
     <url>https://github.com/xently/http-logger-spring-boot-starter</url>
 
     <licenses>
