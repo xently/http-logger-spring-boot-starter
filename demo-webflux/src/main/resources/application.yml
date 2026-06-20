@@ -4,3 +4,6 @@ spring:
   threads:
     virtual:
       enabled: true
+log:
+  http:
+    enabled: true

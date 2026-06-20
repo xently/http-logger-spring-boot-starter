@@ -13,5 +13,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @AllArgsConstructor
 @ConfigurationProperties(prefix = "log.http")
 public final class HttpLoggerProperties {
-    private boolean enabled = true;
+    private boolean enabled = false;
 }
