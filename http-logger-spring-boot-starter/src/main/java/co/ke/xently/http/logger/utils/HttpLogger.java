@@ -12,15 +12,21 @@ import java.util.List;
 public final class HttpLogger {
     private static final Level logLevel = Level.INFO;
     private final boolean prettyPrint;
-    private final HttpLoggerProvider loggerProvider;
+    private final HttpLoggerProvider provider;
+    private final HttpLoggerInterceptor interceptor;
 
-    public HttpLogger(boolean prettyPrint, HttpLoggerProvider loggerProvider) {
+    public HttpLogger(boolean prettyPrint, HttpLoggerProvider provider, HttpLoggerInterceptor interceptor) {
         this.prettyPrint = prettyPrint;
-        this.loggerProvider = loggerProvider;
+        this.provider = provider;
+        this.interceptor = interceptor;
+    }
+
+    public HttpLogger(boolean prettyPrint, HttpLoggerProvider provider) {
+        this(prettyPrint, provider, HttpLoggerInterceptor.DEFAULT);
     }
 
     public void logRequest(URI uri, HttpMethod method, HttpHeaders headers, String body) {
-        final var logger = loggerProvider.get(new Request(uri, method));
+        final var logger = provider.get(new Request(uri, method));
         final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
         List<String> logOutput = new ArrayList<>();
         logOutput.add("\n======================================================START REQUEST======================================================");
@@ -29,13 +35,15 @@ public final class HttpLogger {
         logOutput.add("[HEADERS]:");
         headers.forEach((name, values) -> logOutput.add(getHeaderLogEntry(name, values)));
         logOutput.add("[BODY]:");
-        logOutput.add(prettyPrint ? BodyFormatter.format(body) : body);
+        var payload = prettyPrint ? BodyFormatter.format(body) : body;
+        logOutput.add(payload);
         logOutput.add("=======================================================END REQUEST=======================================================");
+        interceptor.request(uri, method, headers, payload);
         loggingEventBuilder.log(String.join("\n", logOutput));
     }
 
     public void logResponse(URI uri, HttpMethod method, HttpStatusCode httpStatus, HttpHeaders headers, String body) {
-        final var logger = loggerProvider.get(new Request(uri, method));
+        final var logger = provider.get(new Request(uri, method));
         final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
         List<String> logOutput = new ArrayList<>();
         logOutput.add("\n======================================================START RESPONSE======================================================");
@@ -45,8 +53,10 @@ public final class HttpLogger {
         logOutput.add("[HEADERS]:");
         headers.forEach((name, values) -> logOutput.add(getHeaderLogEntry(name, values)));
         logOutput.add("[BODY]:");
-        logOutput.add(prettyPrint ? BodyFormatter.format(body) : body);
+        var payload = prettyPrint ? BodyFormatter.format(body) : body;
+        logOutput.add(payload);
         logOutput.add("=======================================================END RESPONSE=======================================================");
+        interceptor.response(uri, method, httpStatus, headers, payload);
         loggingEventBuilder.log(String.join("\n", logOutput));
     }
 

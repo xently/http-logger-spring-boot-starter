@@ -4,6 +4,7 @@ import co.ke.xently.http.logger.HttpLoggerProperties;
 import co.ke.xently.http.logger.utils.BodyFormatter;
 import co.ke.xently.http.logger.utils.HttpLoggerProvider;
 import co.ke.xently.http.logger.utils.Request;
+import co.ke.xently.http.logger.utils.SoapLoggerInterceptor;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
@@ -19,22 +20,30 @@ import java.util.List;
 @NullMarked
 public record LogSoapClientInterceptor(
         HttpLoggerProperties properties,
-        HttpLoggerProvider loggerProvider
+        HttpLoggerProvider provider,
+        SoapLoggerInterceptor interceptor
 ) implements ClientInterceptor {
+    public LogSoapClientInterceptor(HttpLoggerProperties properties, HttpLoggerProvider provider) {
+        this(properties, provider, SoapLoggerInterceptor.DEFAULT);
+    }
+
     @Override
     public boolean handleRequest(MessageContext messageContext) {
         var logLevel = Level.INFO;
-        var logger = loggerProvider().get(new Request(null, null));
+        var logger = provider().get(new Request(null, null));
         if (properties().isEnabled()) {
             final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
+            var action = getSoapAction(messageContext.getRequest());
+            var payload = getMessageXml(messageContext.getRequest());
             var logOutput = List.of(
                     "\n======================================================START SOAP REQUEST======================================================",
-                    "[SOAP ACTION]: " + getSoapAction(messageContext.getRequest()),
+                    "[SOAP ACTION]: " + action,
                     "[PAYLOAD]:",
-                    getMessageXml(messageContext.getRequest()),
+                    payload,
                     "=======================================================END SOAP REQUEST======================================================="
             );
 
+            interceptor().request(action, payload);
             loggingEventBuilder.log(String.join("\n", logOutput));
         }
         return true; // Return true to continue the request execution
@@ -60,16 +69,18 @@ public record LogSoapClientInterceptor(
 
     private void logIncomingMessage(WebServiceMessage message, String startTag, String endTag) {
         var logLevel = Level.INFO;
-        var logger = loggerProvider().get(new Request(null, null));
+        var logger = provider().get(new Request(null, null));
         if (properties().isEnabled()) {
             final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
+            var payload = getMessageXml(message);
             var logOutput = List.of(
                     "\n======================================================%s======================================================".formatted(startTag), // NOSONAR: java:S3457
                     "[PAYLOAD]:",
-                    getMessageXml(message),
+                    payload,
                     "=======================================================%s=======================================================".formatted(endTag)
             );
 
+            interceptor().response(payload);
             loggingEventBuilder.log(String.join("\n", logOutput));
         }
     }

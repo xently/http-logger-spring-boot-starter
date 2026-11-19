@@ -1,7 +1,9 @@
 package co.ke.xently.http.logger;
 
 import co.ke.xently.http.logger.utils.HttpLogger;
+import co.ke.xently.http.logger.utils.HttpLoggerInterceptor;
 import co.ke.xently.http.logger.utils.HttpLoggerProvider;
+import co.ke.xently.http.logger.utils.SoapLoggerInterceptor;
 import co.ke.xently.http.logger.webflux.HttpLoggerFilter;
 import co.ke.xently.http.logger.webmvc.HttpLoggerRequestInterceptor;
 import co.ke.xently.http.logger.ws.LogSoapClientInterceptor;
@@ -39,19 +41,36 @@ public class HttpLoggerAutoConfiguration {
         }
 
         @Bean
-        public HttpLogger httpLogger(HttpLoggerProvider loggerProvider, HttpLoggerProperties properties) {
-            return new HttpLogger(properties.isPrettyPrint(), loggerProvider);
+        @ConditionalOnMissingBean
+        public HttpLoggerInterceptor httpLoggerInterceptor() {
+            return HttpLoggerInterceptor.DEFAULT;
+        }
+
+        @Bean
+        public HttpLogger httpLogger(
+                HttpLoggerProvider provider,
+                HttpLoggerProperties properties,
+                HttpLoggerInterceptor interceptor
+        ) {
+            return new HttpLogger(properties.isPrettyPrint(), provider, interceptor);
         }
 
         @Configuration(proxyBeanMethods = false)
         @ConditionalOnClass(WebServiceTemplate.class)
         static class SoapLoggerConfiguration {
             @Bean
+            @ConditionalOnMissingBean
+            public SoapLoggerInterceptor soapLoggerInterceptor() {
+                return SoapLoggerInterceptor.DEFAULT;
+            }
+
+            @Bean
             public LogSoapClientInterceptor logSoapClientInterceptor(
                     HttpLoggerProperties properties,
-                    HttpLoggerProvider loggerProvider
+                    HttpLoggerProvider provider,
+                    SoapLoggerInterceptor interceptor
             ) {
-                return new LogSoapClientInterceptor(properties, loggerProvider);
+                return new LogSoapClientInterceptor(properties, provider, interceptor);
             }
 
             @Bean
