@@ -65,6 +65,12 @@ log:
     pretty-print: true # Whether to enable pretty-printing of the body of the request or response. Default is true.
 ```
 
+In a web application, `RestClient` and `WebClient` logging are configured independently based on whether each client is
+on the classpath, rather than on whether the application uses WebMvc or WebFlux. For example, a WebMvc application can
+use a logged `WebClient`, and a WebFlux application can use a logged `RestClient`, provided the corresponding client
+dependencies are available. Both can be configured in the same application. Existing beans may cause individual
+autoconfigured builders or customisers to back off; non-web applications are not auto-configured by this starter.
+
 ## Persisting Requests and Responses for Audit
 
 The starter exposes `HttpLoggerInterceptor` and `SoapLoggerInterceptor` callback interfaces for applications that need
@@ -155,8 +161,9 @@ HTTP exchange may not have a response callback. In particular, do not perform bl
 `WebClient` callback, which may run on a reactive event-loop thread; enqueue the audit event or offload persistence to
 an appropriate scheduler. For `WebClient`, the request body may be reported as `(Unbuffered Reactive Stream)` when no
 non-empty body was captured. The starter applies its hooks to its Boot-managed client builders; if you construct custom
-clients or builders, ensure they use the starter's logging filter/interceptor. Redact sensitive values before storing
-headers or payloads and apply suitable database access and retention controls.
+clients or builders, or replace the relevant autoconfigured beans, ensure they use the starter's logging
+filter/interceptor. Redact sensitive values before storing headers or payloads and apply suitable database access and
+retention controls.
 
 ## Security and Performance Considerations (Production Settings)
 

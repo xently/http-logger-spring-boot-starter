@@ -88,7 +88,6 @@ public class HttpLoggerAutoConfiguration {
         }
 
         @Configuration(proxyBeanMethods = false)
-        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
         @ConditionalOnClass(RestClient.class)
         static class ServletHttpLoggerConfiguration {
             @Bean
@@ -134,7 +133,6 @@ public class HttpLoggerAutoConfiguration {
         }
 
         @Configuration(proxyBeanMethods = false)
-        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
         @ConditionalOnClass(WebClient.class)
         static class ReactiveHttpLoggerConfiguration {
             @Bean
