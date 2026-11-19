@@ -15,6 +15,8 @@ A Spring Boot starter that logs outgoing HTTP requests and responses for `RestCl
 
 - **Automatic Logging**: Log URI, method, headers, and body for outgoing HTTP calls.
 - **SOAP Logging**: Log SOAP Action and XML payload for outgoing SOAP calls.
+- **Readable Payloads**: JSON and XML bodies can be pretty-printed in logs; plain text, empty, malformed, or unsafe XML
+  bodies are kept unchanged.
 - **Dual Support**: Works with both `RestClient`, `WebClient` and `WebServiceTemplate`.
 - **Configurable**: Easily enable or disable logging via properties.
 
@@ -54,6 +56,7 @@ The starter can be configured using the `log.http` prefix in your `application.y
 log:
   http:
     enabled: true # Whether to enable HTTP logging. Default is false.
+    pretty-print: true # Whether to enable pretty-printing of the body of the request or response. Default is true.
 ```
 
 ## Security and Performance Considerations (Production Settings)
@@ -78,4 +81,5 @@ It is recommended to **disable** this library in production environments unless 
 log:
   http:
     enabled: false
+    pretty-print: false
 ```

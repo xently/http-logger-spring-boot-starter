@@ -1,6 +1,7 @@
 package co.ke.xently.http.logger.ws;
 
 import co.ke.xently.http.logger.HttpLoggerProperties;
+import co.ke.xently.http.logger.utils.BodyFormatter;
 import co.ke.xently.http.logger.utils.HttpLoggerProvider;
 import co.ke.xently.http.logger.utils.Request;
 import org.jspecify.annotations.NullMarked;
@@ -76,7 +77,8 @@ public record LogSoapClientInterceptor(
     private String getMessageXml(WebServiceMessage message) {
         try (var outputStream = new ByteArrayOutputStream()) {
             message.writeTo(outputStream);
-            return outputStream.toString(StandardCharsets.UTF_8);
+            var body = outputStream.toString(StandardCharsets.UTF_8);
+            return properties().isPrettyPrint() ? BodyFormatter.format(body) : body;
         } catch (Exception e) {
             return "[ERROR EXTRACTING SOAP XML]: " + e.getMessage();
         }

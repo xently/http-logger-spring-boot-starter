@@ -43,8 +43,8 @@ class HttpLoggerRequestInterceptorTest {
 
     @Test
     void shouldLogRequestDetailsWhenLogLevelIsEnabled(CapturedOutput output) throws IOException {
-        var properties = new HttpLoggerProperties(true);
-        var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(request -> logger));
+        var properties = new HttpLoggerProperties(true, true);
+        var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(properties.isPrettyPrint(), request -> logger));
 
         byte[] body = "test body".getBytes();
         var headers = new HttpHeaders(
@@ -77,9 +77,34 @@ class HttpLoggerRequestInterceptorTest {
     }
 
     @Test
+    void shouldPrettyPrintJsonBodiesWithoutChangingThem(CapturedOutput output) throws IOException {
+        var properties = new HttpLoggerProperties(true, true);
+        var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(properties.isPrettyPrint(), request -> logger));
+        byte[] body = "{\"outer\":{\"count\":2}}".getBytes(StandardCharsets.UTF_8);
+        byte[] responseBody = "{\"result\":true}".getBytes(StandardCharsets.UTF_8);
+        var headers = new HttpHeaders();
+
+        when(request.getMethod()).thenReturn(HttpMethod.POST);
+        when(request.getURI()).thenReturn(URI.create("http://localhost"));
+        when(request.getHeaders()).thenReturn(headers);
+        when(response.getStatusCode()).thenReturn(HttpStatus.OK);
+        when(response.getHeaders()).thenReturn(headers);
+        when(response.getBody()).thenReturn(new ByteArrayInputStream(responseBody));
+        when(execution.execute(request, body)).thenReturn(response);
+
+        var result = interceptor.intercept(request, body, execution);
+
+        assertThat(new String(result.getBody().readAllBytes(), StandardCharsets.UTF_8)).isEqualTo("{\"result\":true}");
+        verify(execution).execute(request, body);
+        assertThat(output).contains("\"outer\"", "\"count\"", "\"result\"")
+                .contains("\n  \"outer\"")
+                .doesNotContain("{\"outer\":{\"count\":2}}", "{\"result\":true}");
+    }
+
+    @Test
     void shouldNotLogRequestDetailsWhenLogLevelIsDisabled(CapturedOutput output) throws IOException {
         var properties = new HttpLoggerProperties();
-        var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(request -> logger));
+        var interceptor = new HttpLoggerRequestInterceptor(properties, new HttpLogger(properties.isPrettyPrint(), request -> logger));
 
         byte[] body = "test body".getBytes();
         when(execution.execute(request, body)).thenReturn(response);

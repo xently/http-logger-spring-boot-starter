@@ -8,13 +8,13 @@ class HttpLoggerPropertiesTest {
 
     @Test
     void shouldHaveDefaultValues() {
-        HttpLoggerProperties properties = new HttpLoggerProperties(true);
+        HttpLoggerProperties properties = new HttpLoggerProperties(true, true);
         assertThat(properties.isEnabled()).isTrue();
     }
 
     @Test
     void shouldAllowModifyingValues() {
-        HttpLoggerProperties properties = new HttpLoggerProperties(true);
+        HttpLoggerProperties properties = new HttpLoggerProperties(true, true);
         properties.setEnabled(false);
         assertThat(properties.isEnabled()).isFalse();
     }
@@ -27,14 +27,14 @@ class HttpLoggerPropertiesTest {
 
     @Test
     void shouldSupportToString() {
-        HttpLoggerProperties properties = new HttpLoggerProperties(true);
+        HttpLoggerProperties properties = new HttpLoggerProperties(true, true);
         assertThat(properties.toString()).contains("enabled=true");
     }
 
     @Test
     void shouldSupportEqualsAndHashCode() {
-        HttpLoggerProperties properties1 = new HttpLoggerProperties(true);
-        HttpLoggerProperties properties2 = new HttpLoggerProperties(true);
+        HttpLoggerProperties properties1 = new HttpLoggerProperties(true, true);
+        HttpLoggerProperties properties2 = new HttpLoggerProperties(true, true);
         HttpLoggerProperties properties3 = new HttpLoggerProperties();
 
         assertThat(properties1).isEqualTo(properties2);

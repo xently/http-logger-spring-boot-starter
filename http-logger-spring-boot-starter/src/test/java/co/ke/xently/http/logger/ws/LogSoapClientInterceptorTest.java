@@ -15,8 +15,7 @@ import org.springframework.ws.soap.SoapMessage;
 import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(OutputCaptureExtension.class)
 class LogSoapClientInterceptorTest {
 
-    private final HttpLoggerProperties properties = new HttpLoggerProperties(true);
+    private final HttpLoggerProperties properties = new HttpLoggerProperties(true, true);
 
     @Test
     void shouldLogSoapRequestWhenLoggingIsEnabled(CapturedOutput output) throws Exception {
@@ -33,7 +32,7 @@ class LogSoapClientInterceptorTest {
         when(soapMessage.getSoapAction()).thenReturn("urn:LoanRepayment");
         doAnswer(invocation -> {
             var stream = invocation.<java.io.OutputStream>getArgument(0);
-            stream.write("<request>payload</request>".getBytes(StandardCharsets.UTF_8));
+            stream.write("<request><item>payload</item><count>2</count></request>".getBytes(StandardCharsets.UTF_8));
             return null;
         }).when(soapMessage).writeTo(any());
 
@@ -47,7 +46,8 @@ class LogSoapClientInterceptorTest {
                 () -> assertThat(handled, is(true)),
                 () -> assertThat(output.getOut(), containsString("START SOAP REQUEST")),
                 () -> assertThat(output.getOut(), containsString("[SOAP ACTION]: urn:LoanRepayment")),
-                () -> assertThat(output.getOut(), containsString("<request>payload</request>"))
+                () -> assertThat(output.getOut(), containsString("\n  <item>payload</item>")),
+                () -> assertThat(output.getOut(), not(containsString("<request><item>payload</item><count>2</count></request>")))
         );
     }
 
@@ -56,7 +56,7 @@ class LogSoapClientInterceptorTest {
         var response = mock(WebServiceMessage.class);
         doAnswer(invocation -> {
             var stream = invocation.<java.io.OutputStream>getArgument(0);
-            stream.write("<response>ok</response>".getBytes(StandardCharsets.UTF_8));
+            stream.write("<response><status>ok</status></response>".getBytes(StandardCharsets.UTF_8));
             return null;
         }).when(response).writeTo(any());
         var context = mock(MessageContext.class);
@@ -71,7 +71,8 @@ class LogSoapClientInterceptorTest {
                 () -> assertThat(handledFault, is(true)),
                 () -> assertThat(output.getOut(), containsString("START SOAP RESPONSE")),
                 () -> assertThat(output.getOut(), containsString("START SOAP FAULT (ERROR)")),
-                () -> assertThat(output.getOut(), containsString("<response>ok</response>"))
+                () -> assertThat(output.getOut(), containsString("\n  <status>ok</status>")),
+                () -> assertThat(output.getOut(), not(containsString("<response><status>ok</status></response>")))
         );
     }
 

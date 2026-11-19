@@ -39,8 +39,8 @@ public class HttpLoggerAutoConfiguration {
         }
 
         @Bean
-        public HttpLogger httpLogger(HttpLoggerProvider loggerProvider) {
-            return new HttpLogger(loggerProvider);
+        public HttpLogger httpLogger(HttpLoggerProvider loggerProvider, HttpLoggerProperties properties) {
+            return new HttpLogger(properties.isPrettyPrint(), loggerProvider);
         }
 
         @Configuration(proxyBeanMethods = false)

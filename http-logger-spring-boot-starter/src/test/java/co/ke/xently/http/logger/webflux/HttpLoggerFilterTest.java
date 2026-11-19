@@ -2,12 +2,11 @@ package co.ke.xently.http.logger.webflux;
 
 import co.ke.xently.http.logger.HttpLoggerProperties;
 import co.ke.xently.http.logger.utils.HttpLogger;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpHeaders;
@@ -23,10 +22,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@Slf4j
 @ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class HttpLoggerFilterTest {
-    private final Logger logger = LoggerFactory.getLogger(HttpLoggerFilterTest.class);
-
     @Mock
     private ClientRequest request;
 
@@ -38,8 +36,8 @@ class HttpLoggerFilterTest {
 
     @Test
     void shouldLogRequestAndResponseDetailsWhenEnabled(CapturedOutput output) {
-        var properties = new HttpLoggerProperties(true);
-        var filter = new HttpLoggerFilter(properties, new HttpLogger(request -> logger));
+        var properties = new HttpLoggerProperties(true, true);
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
 
         var httpHeaders = new HttpHeaders(
                 MultiValueMap.fromSingleValue(
@@ -82,9 +80,33 @@ class HttpLoggerFilterTest {
     }
 
     @Test
+    void shouldPrettyPrintJsonBodiesWithoutChangingTheResponse(CapturedOutput output) {
+        var properties = new HttpLoggerProperties(true, true);
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
+        var responseBody = "{\"result\":true}";
+        WebClient webClient = WebClient.builder()
+                .filter(filter)
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(org.springframework.http.HttpStatus.OK)
+                        .body(responseBody)
+                        .build()))
+                .build();
+
+        var returnedBody = webClient.post()
+                .uri("http://localhost/test")
+                .header("Content-Type", "application/json")
+                .bodyValue("{\"outer\":{\"count\":2}}")
+                .exchangeToMono(response -> response.bodyToMono(String.class))
+                .block();
+
+        assertThat(returnedBody).isEqualTo(responseBody);
+        assertThat(output).contains("\n  \"result\"")
+                .doesNotContain(responseBody);
+    }
+
+    @Test
     void shouldNotLogWhenDisabled(CapturedOutput output) {
         var properties = new HttpLoggerProperties();
-        var filter = new HttpLoggerFilter(properties, new HttpLogger(request -> logger));
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
 
         when(next.exchange(request)).thenReturn(Mono.just(response));
 

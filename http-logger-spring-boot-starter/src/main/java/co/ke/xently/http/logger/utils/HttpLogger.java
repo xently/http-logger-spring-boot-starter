@@ -11,9 +11,11 @@ import java.util.List;
 
 public final class HttpLogger {
     private static final Level logLevel = Level.INFO;
+    private final boolean prettyPrint;
     private final HttpLoggerProvider loggerProvider;
 
-    public HttpLogger(HttpLoggerProvider loggerProvider) {
+    public HttpLogger(boolean prettyPrint, HttpLoggerProvider loggerProvider) {
+        this.prettyPrint = prettyPrint;
         this.loggerProvider = loggerProvider;
     }
 
@@ -27,7 +29,7 @@ public final class HttpLogger {
         logOutput.add("[HEADERS]:");
         headers.forEach((name, values) -> logOutput.add(getHeaderLogEntry(name, values)));
         logOutput.add("[BODY]:");
-        logOutput.add(body);
+        logOutput.add(prettyPrint ? BodyFormatter.format(body) : body);
         logOutput.add("=======================================================END REQUEST=======================================================");
         loggingEventBuilder.log(String.join("\n", logOutput));
     }
@@ -41,10 +43,9 @@ public final class HttpLogger {
         logOutput.add("[METHOD]: %s".formatted(method));
         logOutput.add("[STATUS CODE]: %s".formatted(httpStatus));
         logOutput.add("[HEADERS]:");
-        headers
-                .forEach((name, values) -> logOutput.add(getHeaderLogEntry(name, values)));
+        headers.forEach((name, values) -> logOutput.add(getHeaderLogEntry(name, values)));
         logOutput.add("[BODY]:");
-        logOutput.add(body);
+        logOutput.add(prettyPrint ? BodyFormatter.format(body) : body);
         logOutput.add("=======================================================END RESPONSE=======================================================");
         loggingEventBuilder.log(String.join("\n", logOutput));
     }

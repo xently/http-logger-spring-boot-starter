@@ -54,7 +54,7 @@ class LoggingVerificationTest {
                 "START REQUEST",
                 "POST",
                 "https://jsonplaceholder.typicode.com/posts",
-                "\"title\":\"New Post\"",
+                "\"title\" : \"New Post\"",
                 "START RESPONSE",
                 "New Post"
         );

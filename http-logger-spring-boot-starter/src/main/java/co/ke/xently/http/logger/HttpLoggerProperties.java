@@ -14,4 +14,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "log.http")
 public final class HttpLoggerProperties {
     private boolean enabled = false;
+    private boolean prettyPrint = true;
 }
