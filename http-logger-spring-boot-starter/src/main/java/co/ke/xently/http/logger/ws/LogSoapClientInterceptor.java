@@ -3,7 +3,6 @@ package co.ke.xently.http.logger.ws;
 import co.ke.xently.http.logger.HttpLoggerProperties;
 import co.ke.xently.http.logger.utils.HttpLoggerProvider;
 import co.ke.xently.http.logger.utils.Request;
-import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.event.Level;
@@ -14,10 +13,8 @@ import org.springframework.ws.soap.SoapMessage;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @NullMarked
 public record LogSoapClientInterceptor(
         HttpLoggerProperties properties,
@@ -29,12 +26,13 @@ public record LogSoapClientInterceptor(
         var logger = loggerProvider().get(new Request(null, null));
         if (properties().isEnabled()) {
             final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
-            List<String> logOutput = new ArrayList<>();
-            logOutput.add("\n======================================================START SOAP REQUEST======================================================");
-            logOutput.add("[SOAP ACTION]: " + getSoapAction(messageContext.getRequest()));
-            logOutput.add("[PAYLOAD]:");
-            logOutput.add(getMessageXml(messageContext.getRequest()));
-            logOutput.add("=======================================================END SOAP REQUEST=======================================================");
+            var logOutput = List.of(
+                    "\n======================================================START SOAP REQUEST======================================================",
+                    "[SOAP ACTION]: " + getSoapAction(messageContext.getRequest()),
+                    "[PAYLOAD]:",
+                    getMessageXml(messageContext.getRequest()),
+                    "=======================================================END SOAP REQUEST======================================================="
+            );
 
             loggingEventBuilder.log(String.join("\n", logOutput));
         }
@@ -64,19 +62,19 @@ public record LogSoapClientInterceptor(
         var logger = loggerProvider().get(new Request(null, null));
         if (properties().isEnabled()) {
             final var loggingEventBuilder = logger.makeLoggingEventBuilder(logLevel);
-            List<String> logOutput = new ArrayList<>();
-            logOutput.add("\n======================================================%s======================================================".formatted(startTag)); // NOSONAR: java:S3457
-            logOutput.add("[PAYLOAD]:");
-            logOutput.add(getMessageXml(message));
-            logOutput.add("=======================================================%s=======================================================".formatted(endTag));
+            var logOutput = List.of(
+                    "\n======================================================%s======================================================".formatted(startTag), // NOSONAR: java:S3457
+                    "[PAYLOAD]:",
+                    getMessageXml(message),
+                    "=======================================================%s=======================================================".formatted(endTag)
+            );
 
             loggingEventBuilder.log(String.join("\n", logOutput));
         }
     }
 
     private String getMessageXml(WebServiceMessage message) {
-        try {
-            var outputStream = new ByteArrayOutputStream();
+        try (var outputStream = new ByteArrayOutputStream()) {
             message.writeTo(outputStream);
             return outputStream.toString(StandardCharsets.UTF_8);
         } catch (Exception e) {
