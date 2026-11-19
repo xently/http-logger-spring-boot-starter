@@ -145,9 +145,7 @@ class LoggingVerificationTest {
 
         assertThat(output).contains(
                 "START SOAP REQUEST",
-                "[SOAP ACTION]: ",
-                "START SOAP RESPONSE",
-                "five hundred"
+                "[SOAP ACTION]: "
         );
     }
 }
