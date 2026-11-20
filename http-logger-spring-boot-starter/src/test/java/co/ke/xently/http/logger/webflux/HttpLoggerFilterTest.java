@@ -15,9 +15,15 @@ import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.DisposableServer;
+import reactor.netty.http.server.HttpServer;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -101,6 +107,105 @@ class HttpLoggerFilterTest {
         assertThat(returnedBody).isEqualTo(responseBody);
         assertThat(output).contains("\n  \"result\"")
                 .doesNotContain(responseBody);
+    }
+
+    @Test
+    void shouldLogSerializedWebClientRequestBodyWithoutChangingIt(CapturedOutput output) {
+        var properties = new HttpLoggerProperties(true, true);
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
+        var receivedBodies = new CopyOnWriteArrayList<String>();
+        var server = startServer(receivedBodies::add);
+
+        try {
+            var requestBody = "{\"outer\":{\"count\":2}}";
+            var returnedBody = WebClient.builder()
+                    .filter(filter)
+                    .build()
+                    .post()
+                    .uri("http://127.0.0.1:" + server.port() + "/test")
+                    .header("Content-Type", "application/json")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            assertThat(receivedBodies).containsExactly(requestBody);
+            assertThat(returnedBody).isEqualTo("response");
+            assertThat(output).contains("\n  \"outer\"", "\n    \"count\"")
+                    .doesNotContain(requestBody);
+        } finally {
+            server.disposeNow();
+        }
+    }
+
+    @Test
+    void shouldCaptureFlushBasedStreamingRequestBodies(CapturedOutput output) {
+        var properties = new HttpLoggerProperties(true, true);
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
+        var receivedBodies = new CopyOnWriteArrayList<String>();
+        var server = startServer(receivedBodies::add);
+
+        try {
+            var requestBody = "{\"outer\":{\"count\":2}}";
+            var returnedBody = WebClient.builder()
+                    .filter(filter)
+                    .build()
+                    .post()
+                    .uri("http://127.0.0.1:" + server.port() + "/stream")
+                    .header("Content-Type", "application/json")
+                    .body((outputMessage, context) -> outputMessage.writeAndFlushWith(Flux.just(
+                            Mono.just(outputMessage.bufferFactory().wrap("{\"outer\":".getBytes(StandardCharsets.UTF_8))),
+                            Mono.just(outputMessage.bufferFactory().wrap("{\"count\":2}}".getBytes(StandardCharsets.UTF_8)))
+                    )))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            assertThat(receivedBodies).containsExactly(requestBody);
+            assertThat(returnedBody).isEqualTo("response");
+            assertThat(output).contains("\n  \"outer\"", "\n    \"count\"")
+                    .doesNotContain(requestBody);
+        } finally {
+            server.disposeNow();
+        }
+    }
+
+    @Test
+    void shouldLogEmptyRequestsAndKeepBodyCaptureIndependentAcrossSubscriptions(CapturedOutput output) {
+        var properties = new HttpLoggerProperties(true, true);
+        var filter = new HttpLoggerFilter(properties, new HttpLogger(properties.isPrettyPrint(), request -> log));
+        var receivedBodies = new CopyOnWriteArrayList<String>();
+        var server = startServer(receivedBodies::add);
+        var webClient = WebClient.builder().filter(filter).build();
+
+        try {
+            var uri = "http://127.0.0.1:" + server.port() + "/test";
+            var repeatedRequest = webClient.post().uri(uri).bodyValue("{\"first\":1}")
+                    .retrieve().bodyToMono(String.class);
+            repeatedRequest.block();
+            repeatedRequest.block();
+            webClient.get().uri(uri).retrieve().bodyToMono(String.class).block();
+
+            assertThat(receivedBodies).containsExactly("{\"first\":1}", "{\"first\":1}", "");
+            assertThat(output.getOut().split("\n  \"first\"", -1)).hasSize(3);
+            assertThat(output)
+                    .doesNotContain("(Unbuffered Reactive Stream)");
+        } finally {
+            server.disposeNow();
+        }
+    }
+
+    private DisposableServer startServer(Consumer<String> bodyConsumer) {
+        return HttpServer.create()
+                .host("127.0.0.1")
+                .port(0)
+                .handle((request, response) -> request.receive()
+                        .asString()
+                        .collectList()
+                        .map(chunks -> String.join("", chunks))
+                        .doOnNext(bodyConsumer)
+                        .then(response.sendString(Mono.just("response")).then()))
+                .bindNow();
     }
 
     @Test

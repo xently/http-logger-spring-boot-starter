@@ -5,7 +5,6 @@ import co.ke.xently.http.logger.utils.HttpLogger;
 import org.jspecify.annotations.NullMarked;
 import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.client.reactive.ClientHttpRequestDecorator;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -14,8 +13,9 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @NullMarked
 public record HttpLoggerFilter(
@@ -29,51 +29,71 @@ public record HttpLoggerFilter(
             return next.exchange(request);
         }
 
-        var bodyReference = new AtomicReference<>("");
+        return Mono.defer(() -> {
+            var bodyCapture = new RequestBodyCapture();
+            var requestLogged = new AtomicBoolean();
+            Runnable logRequest = () -> {
+                if (requestLogged.compareAndSet(false, true)) {
+                    logger().logRequest(request.url(), request.method(), request.headers(), bodyCapture.body());
+                }
+            };
 
-        var interceptedRequest = ClientRequest.from(request)
-                .body((outputMessage, context) -> {
-                    var decorator = new ClientHttpRequestDecorator(outputMessage) {
-                        @Override
-                        public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-                            return DataBufferUtils.join(Flux.from(body))
-                                    .flatMap(dataBuffer -> {
-                                        var bytes = new byte[dataBuffer.readableByteCount()];
-                                        dataBuffer.read(bytes);
-                                        DataBufferUtils.release(dataBuffer);
-                                        var bodyString = new String(bytes, StandardCharsets.UTF_8);
-                                        bodyReference.set(bodyString);
-                                        return super.writeWith(Mono.just(outputMessage.bufferFactory().wrap(bytes)));
-                                    });
-                        }
-                    };
-                    return request.body().insert(decorator, context);
-                })
-                .build();
+            var interceptedRequest = ClientRequest.from(request)
+                    .body((outputMessage, context) -> {
+                        var decorator = new ClientHttpRequestDecorator(outputMessage) {
+                            @Override
+                            public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+                                return super.writeWith(Flux.from(body)
+                                                .doOnNext(bodyCapture::append))
+                                        .doOnSuccess(ignored -> logRequest.run());
+                            }
 
-        return next.exchange(interceptedRequest)
-                .flatMap(response -> response.bodyToMono(String.class)
-                        .defaultIfEmpty("")
-                        .flatMap(bodyString -> {
-                            logger().logRequest(
-                                    request.url(),
-                                    request.method(),
-                                    request.headers(),
-                                    bodyReference.get().isEmpty() ? "(Unbuffered Reactive Stream)" : bodyReference.get()
-                            );
-                            logger().logResponse(
-                                    request.url(),
-                                    request.method(),
-                                    response.statusCode(),
-                                    response.headers().asHttpHeaders(),
-                                    bodyString
-                            );
-                            return Mono.just(response.mutate()
-                                    .body(bodyString)
-                                    .build());
-                        }))
-                .doOnTerminate(() -> {
-                    // Ensure some form of logging happens even if response body processing fails
-                });
+                            @Override
+                            public Mono<Void> writeAndFlushWith(
+                                    Publisher<? extends Publisher<? extends DataBuffer>> body
+                            ) {
+                                var observedBody = Flux.from(body)
+                                        .map(group -> Flux.from(group).doOnNext(bodyCapture::append));
+
+                                return super.writeAndFlushWith(observedBody)
+                                        .doOnSuccess(ignored -> logRequest.run());
+                            }
+                        };
+                        return request.body().insert(decorator, context);
+                    })
+                    .build();
+
+            return next.exchange(interceptedRequest)
+                    .flatMap(response -> response.bodyToMono(String.class)
+                            .defaultIfEmpty("")
+                            .flatMap(bodyString -> {
+                                logRequest.run();
+                                logger().logResponse(
+                                        request.url(),
+                                        request.method(),
+                                        response.statusCode(),
+                                        response.headers().asHttpHeaders(),
+                                        bodyString
+                                );
+                                return Mono.just(response.mutate()
+                                        .body(bodyString)
+                                        .build());
+                            }));
+        });
+    }
+
+    private static final class RequestBodyCapture {
+        private final ByteArrayOutputStream body = new ByteArrayOutputStream();
+
+        synchronized void append(DataBuffer dataBuffer) {
+            var bytes = dataBuffer.toByteBuffer(dataBuffer.readPosition(), dataBuffer.readableByteCount());
+            var capturedBytes = new byte[bytes.remaining()];
+            bytes.get(capturedBytes);
+            body.write(capturedBytes, 0, capturedBytes.length);
+        }
+
+        synchronized String body() {
+            return body.toString(StandardCharsets.UTF_8);
+        }
     }
 }
