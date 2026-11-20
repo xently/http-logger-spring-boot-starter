@@ -20,9 +20,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.ws.client.core.WebServiceTemplate;
 
@@ -128,6 +131,19 @@ public class HttpLoggerAutoConfiguration {
                 @ConditionalOnMissingBean
                 public RestClientCustomizer restClientCustomizer(HttpLoggerRequestInterceptor interceptor) {
                     return restClientBuilder -> restClientBuilder.requestInterceptor(interceptor);
+                }
+
+                @Bean
+                @Order(Ordered.LOWEST_PRECEDENCE)
+                public RestClientHttpServiceGroupConfigurer httpLoggerRestClientHttpServiceGroupConfigurer(
+                        HttpLoggerRequestInterceptor interceptor
+                ) {
+                    return groups -> groups.forEachClient((group, builder) -> builder.requestInterceptors(interceptors -> {
+                        var loggerWasRegistered = interceptors.removeIf(candidate -> candidate == interceptor);
+                        if (loggerWasRegistered) {
+                            interceptors.add(interceptor);
+                        }
+                    }));
                 }
             }
         }

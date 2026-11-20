@@ -80,6 +80,12 @@ bodies. When `log.http.enabled` is `true`, the starter invokes your bean as part
 not provide one, the starter uses a no-op implementation. Database schema, persistence dependencies, and retention are
 the application's responsibility.
 
+For `RestClient`-backed HTTP service groups, the starter places its logging interceptor after the group configurers so
+that headers added by `OAuth2RestClientHttpServiceGroupConfigurer` are included in logs and audit callbacks. If a custom
+group configurer adds an authentication interceptor after the starter's configurer, ensure the logging interceptor is
+moved to the end of that group's interceptor list as well. Custom clients must also include the starter interceptor and
+place it after any interceptor that adds headers they need logged.
+
 For example, the following PostgreSQL table can store one row for each request or response callback:
 
 ```sql
@@ -175,6 +181,9 @@ several risks:
 - **Sensitive Data Exposure**: Request and response bodies often contain Personally Identifiable Information (PII),
   credentials, API keys, or session tokens. Logging these in plain text can lead to data breaches if logs are not
   properly secured or if they are sent to external log aggregators.
+- **Authorization Headers**: Request headers are logged and delivered to `HttpLoggerInterceptor` callbacks without
+  redaction, including OAuth2 `Authorization: Bearer` tokens. Treat logs and audit callback storage as secret-bearing
+  data, and redact or omit credentials before persisting them.
 - **Compliance**: Many regulations (e.g., GDPR, PCI-DSS) strictly prohibit the logging of sensitive data.
 
 ### 2. Performance Impacts
