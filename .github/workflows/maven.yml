@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         version: [ '21', '25' ]
-        distribution: [ 'liberica', 'temurin', 'zulu', 'microsoft', 'corretto', 'oracle' ]
+        distribution: [ 'liberica', 'temurin', 'oracle' ]
     permissions:
       contents: "write"
       pull-requests: "write"
